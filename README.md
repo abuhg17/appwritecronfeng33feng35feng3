@@ -1,45 +1,46 @@
 # cronappwriteabuhg17
 
-This repository syncs a Supabase Storage bucket into GitHub on a schedule.
+This repository exports Appwrite database data every hour with GitHub Actions and stores the result in versioned JSON files.
 
-## What it does
+## What gets created
 
-- Runs a GitHub Actions workflow every hour
-- Downloads files from the configured Supabase Storage bucket
-- Stores the downloaded files under `synced/<bucket>/`
-- Writes a manifest file to `synced/<bucket>-manifest.json`
-- Commits and pushes changes back to this repository automatically
+- `data/appwrite/latest.json`: the newest full export
+- `data/appwrite/history/snapshot-YYYYMMDDTHHMMSSZ.json`: timestamped history snapshots
 
 ## Required GitHub Secrets
 
 Add these repository secrets in GitHub:
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_BUCKET`
+- `APPWRITE_ENDPOINT`
+- `APPWRITE_PROJECT_ID`
+- `APPWRITE_DATABASE_ID`
+- `APPWRITE_API_KEY`
 
-For your current setup:
+Use these values from your Appwrite project:
 
-- `SUPABASE_URL=https://jqkjoqqellhsrhhzlkvr.supabase.co`
-- `SUPABASE_BUCKET=abuhg17`
+- Endpoint: your Appwrite API endpoint
+- Project ID: your Appwrite project ID
+- Database ID: the database to export
+- API key: an Appwrite server key with permission to read the target database and collections
 
-Keep the anon key in GitHub Secrets only. Do not commit it into the repository.
+## Workflow behavior
 
-## Workflow
+- Runs automatically every hour via GitHub Actions cron
+- Can also be started manually from the Actions tab with `workflow_dispatch`
+- Commits backup changes back into the repository
 
-The workflow file is:
+## Important note about schedule time
 
-- `.github/workflows/hourly-sync.yml`
+GitHub Actions cron uses UTC. The current schedule `0 * * * *` means it runs at the start of every UTC hour.
 
-It runs on:
+## Local run
 
-- every hour at minute `0`
-- manual trigger from the Actions tab
+You can test locally with PowerShell:
 
-## Local Run
-
-You can also run the sync locally with Node.js 20+:
-
-```bash
-node scripts/sync-supabase-storage.mjs
+```powershell
+$env:APPWRITE_ENDPOINT="https://tor.cloud.appwrite.io/v1"
+$env:APPWRITE_PROJECT_ID="your-project-id"
+$env:APPWRITE_DATABASE_ID="your-database-id"
+$env:APPWRITE_API_KEY="your-api-key"
+python scripts/fetch_appwrite_backup.py
 ```
