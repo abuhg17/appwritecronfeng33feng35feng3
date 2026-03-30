@@ -25,7 +25,7 @@ Use these values from your Appwrite project:
 
 ## Workflow behavior
 
-- Runs automatically every hour at minute `11` via GitHub Actions cron
+- Runs automatically every hour at minutes `33` and `37` via GitHub Actions cron
 - Can also be started manually from the Actions tab with `workflow_dispatch`
 - Also supports external trigger via `repository_dispatch`
 - Commits backup changes back into the repository
@@ -33,7 +33,7 @@ Use these values from your Appwrite project:
 
 ## Important note about schedule time
 
-GitHub Actions cron uses UTC. The current schedule `11 * * * *` means it runs at minute `11` of every UTC hour.
+GitHub Actions cron uses UTC. The current schedules `33 * * * *` and `37 * * * *` mean it runs at minutes `33` and `37` of every UTC hour.
 
 ## More reliable external trigger
 
@@ -74,3 +74,4 @@ $env:APPWRITE_DATABASE_ID="your-database-id"
 $env:APPWRITE_API_KEY="your-api-key"
 python scripts/fetch_appwrite_backup.py
 ```
+
