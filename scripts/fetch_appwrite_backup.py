@@ -47,6 +47,16 @@ def appwrite_get(
         raise RuntimeError(f"Failed to reach Appwrite endpoint: {exc}") from exc
 
 
+def build_query(method: str, values: List[Any], column: str | None = None) -> str:
+    payload: Dict[str, Any] = {
+        "method": method,
+        "values": values,
+    }
+    if column is not None:
+        payload["column"] = column
+    return json.dumps(payload, separators=(",", ":"))
+
+
 def list_collections(endpoint: str, project_id: str, api_key: str, database_id: str) -> List[Dict[str, Any]]:
     collections: List[Dict[str, Any]] = []
     offset = 0
@@ -60,9 +70,10 @@ def list_collections(endpoint: str, project_id: str, api_key: str, database_id: 
             f"/databases/{database_id}/collections",
             params={
                 "queries[]": [
-                    f"limit({page_size})",
-                    f"offset({offset})",
-                ]
+                    build_query("limit", [page_size]),
+                    build_query("offset", [offset]),
+                ],
+                "total": "false",
             },
         )
         batch = payload.get("collections", [])
@@ -94,9 +105,10 @@ def list_documents(
             f"/databases/{database_id}/collections/{collection_id}/documents",
             params={
                 "queries[]": [
-                    f"limit({page_size})",
-                    f"offset({offset})",
-                ]
+                    build_query("limit", [page_size]),
+                    build_query("offset", [offset]),
+                ],
+                "total": "false",
             },
         )
         batch = payload.get("documents", [])
@@ -166,4 +178,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
