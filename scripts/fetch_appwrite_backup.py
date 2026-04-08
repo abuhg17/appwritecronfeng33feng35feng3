@@ -13,6 +13,10 @@ class AppwritePausedError(RuntimeError):
     """Raised when Appwrite pauses the project due to inactivity."""
 
 
+def log_progress(message: str) -> None:
+    print(f"[progress] {message}", flush=True)
+
+
 def require_env(name: str) -> str:
     value = os.getenv(name, "").strip()
     if not value:
@@ -90,6 +94,7 @@ def list_collections(endpoint: str, project_id: str, api_key: str, database_id: 
         )
         batch = payload.get("collections", [])
         collections.extend(batch)
+        log_progress(f"Loaded collection page at offset {offset}; total collections discovered: {len(collections)}")
 
         if len(batch) < page_size:
             break
@@ -104,12 +109,17 @@ def list_documents(
     api_key: str,
     database_id: str,
     collection_id: str,
+    collection_name: str,
+    current_index: int,
+    total_collections: int,
 ) -> List[Dict[str, Any]]:
     documents: List[Dict[str, Any]] = []
     offset = 0
     page_size = 100
+    page_number = 0
 
     while True:
+        page_number += 1
         payload = appwrite_get(
             endpoint,
             project_id,
@@ -125,6 +135,10 @@ def list_documents(
         )
         batch = payload.get("documents", [])
         documents.extend(batch)
+        log_progress(
+            f"[{current_index}/{total_collections}] {collection_name} ({collection_id}) page {page_number}: "
+            f"fetched {len(batch)} docs, accumulated {len(documents)}"
+        )
 
         if len(batch) < page_size:
             break
@@ -144,18 +158,35 @@ def build_snapshot() -> Dict[str, Any]:
     database_id = require_env("APPWRITE_DATABASE_ID")
     api_key = require_env("APPWRITE_API_KEY")
 
+    log_progress(f"Starting Appwrite export for database {database_id}")
     collections = list_collections(endpoint, project_id, api_key, database_id)
     exported_collections = []
+    total_collections = len(collections)
+    log_progress(f"Discovered {total_collections} collections to export")
 
-    for collection in collections:
+    for index, collection in enumerate(collections, start=1):
         collection_id = collection["$id"]
-        documents = list_documents(endpoint, project_id, api_key, database_id, collection_id)
+        collection_name = collection.get("name") or collection_id
+        log_progress(f"[{index}/{total_collections}] Exporting collection {collection_name} ({collection_id})")
+        documents = list_documents(
+            endpoint,
+            project_id,
+            api_key,
+            database_id,
+            collection_id,
+            collection_name,
+            index,
+            total_collections,
+        )
         exported_collections.append(
             {
                 "collection": collection,
                 "documentsCount": len(documents),
                 "documents": documents,
             }
+        )
+        log_progress(
+            f"[{index}/{total_collections}] Completed {collection_name} ({collection_id}) with {len(documents)} documents"
         )
 
     exported_at = datetime.now(timezone.utc)
