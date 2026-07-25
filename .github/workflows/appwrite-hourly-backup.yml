@@ -2,6 +2,7 @@ name: Hourly Appwrite Sync
 
 on:
   schedule:
+    # GitHub Actions cron is UTC. Minute 33 & 37 each hour.
     - cron: "33 * * * *"
     - cron: "37 * * * *"
   workflow_dispatch:
@@ -38,10 +39,16 @@ jobs:
           APPWRITE_PROJECT_ID: ${{ secrets.APPWRITE_PROJECT_ID }}
           APPWRITE_DATABASE_ID: ${{ secrets.APPWRITE_DATABASE_ID }}
           APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+          # Skip git-churn when DB content is identical (ignores exportedAt).
+          APPWRITE_SKIP_IF_UNCHANGED: "1"
+          # Keep newest N history snapshots (~7 days of hourly). 0 = unlimited.
+          APPWRITE_HISTORY_RETENTION: "168"
+          APPWRITE_EXPORT_DEBUG: "1"
         run: python scripts/fetch_appwrite_backup.py
 
       - name: Commit updated backup files
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
